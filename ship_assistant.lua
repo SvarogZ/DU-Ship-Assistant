@@ -110,8 +110,6 @@ local htmlStyle = [[<style>
 	table.small {
 		font-size:]]..font_size/2 ..[[vh;
 		width:45vw;
-		left:5vw;
-		top:5vh;	
 	}
 	
 	th {
