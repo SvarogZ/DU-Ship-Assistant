@@ -103,15 +103,15 @@ local htmlStyle = [[<style>
 		margin:0px auto;
 		color:]]..font_color..[[;
 		width:90vw;
-		left:10vh;
+		left:5vw;
 		top:5vh;
 	}
 	
 	table.small {
 		font-size:]]..font_size/2 ..[[vh;
 		width:45vw;
-		left:50vw;
-		top:50vh;	
+		left:5vw;
+		top:5vh;	
 	}
 	
 	th {
@@ -528,8 +528,8 @@ function update()
 	displayFuelTanks()
 	
 	setDamagedElements()
-	displaySketch()
 	displayDamagedElements()
+	displaySketch()
 	
 	if not pointTimerIsActive and activatePointTimer then
 		unit.setTimer("point", pointerUpdateTime)
