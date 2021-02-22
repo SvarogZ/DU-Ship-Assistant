@@ -70,7 +70,7 @@ local tempDamagedIdToShow = {}
 local core = nil
 local uidList = {}
 local numberIdToCheck = 0
-local currentIdToCheck = 0
+local currentIdToCheck = 1
 local screens = {}
 
 local elementsToScroll = {}
@@ -193,10 +193,12 @@ local fuelTanksRowTemplate = "<tr><td class='cell' style='background-color:%s'><
 
 local systemScreenHtmlTemplate = [[<div style="position:absolute;top:10vh;right:5vw;height:5vh;width:90vw;color:%s;text-shadow:0.2vw 0.2vh 1vw %s;font-size:2vh;text-align:center;">%s</div>]]
 
-local circleSvgTemplate = [[<circle cx="%.2d" cy="%.2d" r="%.2d" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
-local rectangleSvgTemplate = [[<rect x="%.2d" y="%.2d" width="%.2d" height="%.2d" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
-local groupSvgTemplate = [[<g transform="rotate(0 0 0) translate(%d %d) scale(1)">%s</g>]]
-local svgTemplate = [[<svg style="height:100vh;">%s</svg>]]
+local circleSvgTemplate = [[<circle cx="%.2f" cy="%.2f" r="%.2f" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
+local rectangleSvgTemplate = [[<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" stroke="%s" stroke-width="$.4f" fill="%s"/>]]
+local groupSvgTemplate = [[<g transform="rotate(0 0 0) scale(1 1) translate(%d %d)">%s</g>]]
+local coreOffset = 0
+local function getCoreOffset() return coreOffset end
+local svgTemplate = [[<svg viewBox="0 0 32 32" style="width:100vw;height:100vh;border:solid 1vh black;">%s</svg>]]
 
 
 -------------------------
@@ -251,8 +253,10 @@ local function setElementsList()
 	if #uidList > 0 then
 		for _, uid in ipairs(uidList) do
 			local element = {
+				type = core.getElementTypeById(uid),
+				name = core.getElementNameById(uid),
 				position = core.getElementPositionById(uid),
-				maxHitPoints = math.floor(core.getElementMaxHitPointsById(uid)) or 0
+				maxHitPoints = math.floor(core.getElementMaxHitPointsById(uid)) or 0,
 				shape = "circle",
 				size = 1
 			}
@@ -264,13 +268,13 @@ end
 local function getElementSvg(plane,shape,position,size,isDamaged)
 	local x = 0
 	local y = 0
-	if plane = "top" then
+	if plane == "top" then
 		x = position[1]
 		y = position[2]
-	elseif plane = "side" then
+	elseif plane == "side" then
 		x = position[1]
 		y = position[3]
-	elseif plane = "front" then
+	elseif plane == "front" then
 		x = position[2]
 		y = position[3]
 	else
@@ -320,7 +324,7 @@ local function displaySketch()
 			end
 		end
 		
-		local svgTop = string.format(groupSvgTemplate,coreOffset,coreOffset,table.concat(svgHealthyElements.top)..table.concat(svgDamagedElements.top))
+		local svgTop = string.format(groupSvgTemplate,0,0,table.concat(svgHealthyElements.top)..table.concat(svgDamagedElements.top))
 		
 		local svg = string.format(svgTemplate,svgTop)
 		
@@ -355,7 +359,7 @@ local function setDamagedElements()
 			damagedIdToShow = tempDamagedIdToShow
 			tempDamaged = {}
 			tempDamagedIdToShow = {}
-			currentIdToCheck = 0
+			currentIdToCheck = 1
 		elseif #damagedIdToShow < #tempDamagedIdToShow then
 			damaged = tempDamaged
 			damagedIdToShow = tempDamagedIdToShow
@@ -519,8 +523,8 @@ function update()
 	displayFuelTanks()
 	
 	setDamagedElements()
-	displaySketch()
 	displayDamagedElements()
+	displaySketch()
 	
 	if not pointTimerIsActive and activatePointTimer then
 		unit.setTimer("point", pointerUpdateTime)
