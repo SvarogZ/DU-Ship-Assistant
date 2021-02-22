@@ -1,4 +1,4 @@
-local scriptVersion = "1.1"
+local scriptVersion = "1.2"
 -------------------------
 -- USER DEFINED DATA ----
 -------------------------
@@ -42,11 +42,18 @@ if pointer_fps > 30 then pointer_fps = 30 end
 local pointerUpdateTime = 1 / pointer_fps
 local pointerStep = pointer_speed / pointer_fps
 local pointerSteps = math.floor(pointer_max_distance / pointerStep)
+local element_sketch_color_healthy = "black" --export
+local element_sketch_color_damaged = "red" --export
 
 -------------------------
 -- VARIABLES ------------
 -------------------------
 local indicatorColorCurrent = indicator_color
+
+local sketchScreenId = 0
+local damageTableScreenId = 0
+
+local elementsList = {}
 
 local tanks = {
 	atmo = {},
@@ -55,7 +62,7 @@ local tanks = {
 }
 local tanksIdToShow = {}
 
-local damaged = {}
+local damaged = {} -- store hitPoints only
 local damagedIdToShow = {}
 local tempDamaged = {}
 local tempDamagedIdToShow = {}
@@ -97,6 +104,10 @@ local htmlStyle = [[<style>
 		width:90vw;
 		left:10vh;
 		top:5vh;
+	}
+	
+	table.transparent {
+		opacity: 0.6;
 	}
 	
 	th {
@@ -174,13 +185,19 @@ local damageIndicatorActivatedText = "DAMAGE INDICATOR ACTIVATED"
 local noFuelTanksFoundText = "NO FUEL TANKS FOUND"
 local fuelTankIndicatorActivatedText ="FUEL TANK INDICATOR ACTIVATED"
 
-local damageTableTemplate = "<table><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%%</th></tr><tbody class='zebra'>%s</tbody></table>"
+local damageTableTemplate = "<table class='transparent'><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%%</th></tr><tbody class='zebra'>%s</tbody></table>"
 local damageRowTemplate = "<tr><td class='cell'>%d</td><td class='cell'>%s</td><td class='cell'>%s</td><td class='cell'>%d</td><td class='cell'>%d</td><td class='cell'>%.1f</td></tr>"
 
 local fuelTanksTableTemplate = "<table><tr><th style='width:10vw'>code</th><th style='width:10vw'>id</th><th style='width:60vw'>name</th><th>%%</th></tr><tbody>%s</tbody></table>"
 local fuelTanksRowTemplate = "<tr><td class='cell' style='background-color:%s'></td><td class='cell'>%d</td><td class='cell'>%s</td><td class='cell'>%d</td></tr>"
 
 local systemScreenHtmlTemplate = [[<div style="position:absolute;top:10vh;right:5vw;height:5vh;width:90vw;color:%s;text-shadow:0.2vw 0.2vh 1vw %s;font-size:2vh;text-align:center;">%s</div>]]
+
+local circleSvgTemplate = [[<circle cx="%.2d" cy="%.2d" r="%.2d" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
+local rectangleSvgTemplate = [[<rect x="%.2d" y="%.2d" width="%.2d" height="%.2d" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
+local groupSvgTemplate = [[<g transform="rotate(0 0 0) translate(%d %d) scale(1)">%s</g>]]
+local svgTemplate = [[<svg style="height:100vh;">%s</svg>]]
+
 
 -------------------------
 -- FUNCTIONS ------------
@@ -230,6 +247,91 @@ local function initiateSlots()
 	
 end
 
+local function setElementsList()
+	if #uidList > 0 then
+		for _, uid in ipairs(uidList) do
+			local element = {
+				position = core.getElementPositionById(uid),
+				maxHitPoints = math.floor(core.getElementMaxHitPointsById(uid)) or 0
+				shape = "circle",
+				size = 1
+			}
+			elementsList[uid] = element
+		end
+	end
+end
+
+local function getElementSvg(plane,shape,position,size,isDamaged)
+	local x = 0
+	local y = 0
+	if plane = "top" then
+		x = position[1]
+		y = position[2]
+	elseif plane = "side" then
+		x = position[1]
+		y = position[3]
+	elseif plane = "front" then
+		x = position[2]
+		y = position[3]
+	else
+		return ""
+	end
+	
+	local color = element_sketch_color_healthy
+	if isDamaged then color = element_sketch_color_damaged end
+	
+	if shape == "circle" then
+		-- x,y,r,srtoke,stroke-width,fill
+		return string.format(circleSvgTemplate,x,y,size/2,color,size/10,color)
+	elseif shape == "rectangle" then
+		-- x,y,width,height,stroke,stroke-width,fill
+		return string.format(rectangleSvgTemplate,x-size/2,y-size/2,size,size,color,size/10,color)
+	else
+		return ""
+	end
+end
+
+local function displaySketch()
+	if #uidList > 0 and screens[damage_screen_number] then
+		
+		local svgHealthyElements = {
+			top = {},
+			side = {},
+			front = {}
+		}
+		local svgDamagedElements = {
+			top = {},
+			side = {},
+			front = {}
+		}
+		
+		for _, uid in ipairs(uidList) do
+			local color = element_sketch_color_healthy
+			local element = elementsList[uid]
+			
+			if damaged[uid] then
+				table.insert(svgDamagedElements.top,getElementSvg("top",element.shape,element.position,element.size,true))
+				table.insert(svgDamagedElements.side,getElementSvg("side",element.shape,element.position,element.size,true))
+				table.insert(svgDamagedElements.front,getElementSvg("front",element.shape,element.position,element.size,true))				
+			else
+				table.insert(svgHealthyElements.top,getElementSvg("top",element.shape,element.position,element.size,false))
+				table.insert(svgHealthyElements.side,getElementSvg("side",element.shape,element.position,element.size,false))
+				table.insert(svgHealthyElements.front,getElementSvg("front",element.shape,element.position,element.size,false))				
+			end
+		end
+		
+		local svgTop = string.format(groupSvgTemplate,coreOffset,coreOffset,table.concat(svgHealthyElements.top)..table.concat(svgDamagedElements.top))
+		
+		local svg = string.format(svgTemplate,svgTop)
+		
+		if sketchScreenId == 0 then
+			sketchScreenId = screens[damage_screen_number].addContent(0,0,svg)
+		else
+			screens[damage_screen_number].resetContent(sketchScreenId,svg)
+		end
+	end
+end
+
 local function setDamagedElements()
 	if core then
 		local maxId = currentIdToCheck + damaged_elements_to_check
@@ -239,18 +341,11 @@ local function setDamagedElements()
 		
 		for i = currentIdToCheck, maxId , 1 do
 			local uid = uidList[i]
-			local maxHitpoints = math.floor(core.getElementMaxHitPointsById(uid)) or 0
+			local maxHitPoints = elementsList[uid].maxHitPoints
 			local hitPoints = math.floor(core.getElementHitPointsById(uid)) or 0
 			
-			if hitPoints < maxHitpoints then
-				local element = {}
-				element.uid = uid
-				element.type = core.getElementTypeById(uid) or "unknown"
-				element.name = core.getElementNameById(uid) or "unknown"
-				element.hitPoints = hitPoints
-				element.maxHitPoints = maxHitpoints
-				element.position = core.getElementPositionById(uid) or 0
-				table.insert(tempDamaged,element)
+			if hitPoints < maxHitPoints then
+				tempDamaged[uid] = hitPoints
 				table.insert(tempDamagedIdToShow,uid)
 			end
 		end
@@ -261,7 +356,7 @@ local function setDamagedElements()
 			tempDamaged = {}
 			tempDamagedIdToShow = {}
 			currentIdToCheck = 0
-		elseif #damaged < #tempDamaged then
+		elseif #damagedIdToShow < #tempDamagedIdToShow then
 			damaged = tempDamaged
 			damagedIdToShow = tempDamagedIdToShow
 			currentIdToCheck = maxId + 1
@@ -385,30 +480,31 @@ local function displayFuelTanks()
 			end
 		end
 		local html = string.format(fuelTanksTableTemplate,table.concat(messageRows))
-		--local html = "<table><tr><th style='width:10vw'>code</th><th style='width:10vw'>id</th><th style='width:60vw'>name</th><th>%</th></tr><tbody>"
-		--	..table.concat(messageRows)
-		--	.. "</tbody></table>"
 		screens[fuel_screen_number].setHTML(htmlStyle..html..htmlIndicator)
 	end
 end
 
 local function displayDamagedElements()
 	if screens[damage_screen_number] then
-		if #damaged < 1 then
+		if #damagedIdToShow < 1 then
 			screens[damage_screen_number].setHTML(htmlStyle..htmlNoDamage..htmlIndicator)
 		else
 			local messageRows = {}
-			for _, element in ipairs(damaged) do
-				table.insert(messageRows, string.format(damageRowTemplate, element.uid, element.type, element.name,element.hitPoints,element.maxHitPoints,math.floor(1000*element.hitPoints/element.maxHitPoints)/10))
+			for _, uid in pairs(damagedIdToShow) do
+				local element = elementsList[uid]
+				local hitPoints = damaged[uid]
+				table.insert(messageRows, string.format(damageRowTemplate, uid, element.type, element.name,hitPoints,element.maxHitPoints,math.floor(1000*hitPoints/element.maxHitPoints)/10))
 			end
 			
 			local rows = 10
-			if rows > #damaged then rows = #damaged end
+			if rows > #damagedIdToShow then rows = #damagedIdToShow end
 			local html = string.format(damageTableTemplate,table.concat(messageRows,"",1,rows))
-			--local html = "<table><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%</th></tr><tbody class='zebra'>"
-			--	..table.concat(messageRows,"",1,rows)
-			--	.. "</tbody></table>"
-			screens[damage_screen_number].setHTML(htmlStyle..html..htmlIndicator)
+			
+			if damageTableScreenId == 0 then
+				damageTableScreenId = screens[damage_screen_number].addContent(0,0,htmlStyle..html..htmlIndicator)
+			else
+				screens[damage_screen_number].resetContent(damageTableScreenId,htmlStyle..html..htmlIndicator)
+			end
 		end
 	end
 end
@@ -423,6 +519,7 @@ function update()
 	displayFuelTanks()
 	
 	setDamagedElements()
+	displaySketch()
 	displayDamagedElements()
 	
 	if not pointTimerIsActive and activatePointTimer then
@@ -445,6 +542,7 @@ function pointElement()
 		end
 		
 		local position = core.getElementPositionById(elementsToScroll[activeElementId])
+		--local position = elementsList[elementsToScroll[activeElementId]]
 		local x = position[1] - coreOffset
 		local y = position[2] - coreOffset
 		local z = position[3] - coreOffset
@@ -500,6 +598,7 @@ end
 -- START CODE ----------------------
 ------------------------------------
 initiateSlots()
+setElementsList()
 setProcessing()
 system.showScreen(1)
 
@@ -543,4 +642,4 @@ activeElementIdDown()
 -------------------------
 -- Alt+9 ----------------
 -------------------------
-unit.exit()
+unit.exit(
