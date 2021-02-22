@@ -20,7 +20,7 @@ local tankColors = {
 	space = space_color,
 	rocket = rocket_color
 }
-local font_size = 5 --export: font size for the table
+local font_size = 4 --export: font size for the table
 local font_color = "black" --export: font color for the table
 local screen_color = "#979A9A" --export: screen background color
 local no_damage_color = "green" --export: "No Damage" text color
@@ -94,6 +94,7 @@ local htmlStyle = [[<style>
 	}
 	
 	table {
+		table-layout:fixed;
 		font-family:"Lucinda Sans";
 		position:absolute;
 		font-size:]]..font_size..[[vh;
@@ -106,8 +107,11 @@ local htmlStyle = [[<style>
 		top:5vh;
 	}
 	
-	table.transparent {
-		opacity: 0.6;
+	table.small {
+		font-size:]]..font_size/2 ..[[vh;
+		width:45vw;
+		left:50vw;
+		top:50vh;	
 	}
 	
 	th {
@@ -121,8 +125,8 @@ local htmlStyle = [[<style>
 	}
 	
 	th, td {
-		border: solid 0.4vw ]]..table_border_color..[[;
-		padding: 0.5vw;
+		border-color:]]..table_border_color..[[;
+		padding:0.5vw;
 		height:8vh;
 	}
 	
@@ -185,7 +189,7 @@ local damageIndicatorActivatedText = "DAMAGE INDICATOR ACTIVATED"
 local noFuelTanksFoundText = "NO FUEL TANKS FOUND"
 local fuelTankIndicatorActivatedText ="FUEL TANK INDICATOR ACTIVATED"
 
-local damageTableTemplate = "<table class='transparent'><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%%</th></tr><tbody class='zebra'>%s</tbody></table>"
+local damageTableTemplate = "<table class='small'><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%%</th></tr><tbody class='zebra'>%s</tbody></table></div>"
 local damageRowTemplate = "<tr><td class='cell'>%d</td><td class='cell'>%s</td><td class='cell'>%s</td><td class='cell'>%d</td><td class='cell'>%d</td><td class='cell'>%.1f</td></tr>"
 
 local fuelTanksTableTemplate = "<table><tr><th style='width:10vw'>code</th><th style='width:10vw'>id</th><th style='width:60vw'>name</th><th>%%</th></tr><tbody>%s</tbody></table>"
@@ -195,10 +199,9 @@ local systemScreenHtmlTemplate = [[<div style="position:absolute;top:10vh;right:
 
 local circleSvgTemplate = [[<circle cx="%.2f" cy="%.2f" r="%.2f" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
 local rectangleSvgTemplate = [[<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" stroke="%s" stroke-width="$.4f" fill="%s"/>]]
-local groupSvgTemplate = [[<g transform="rotate(0 0 0) scale(1 1) translate(%d %d)">%s</g>]]
+local groupSvgTemplate = [[<g transform="translate(%d $d)">%s</g>]]
 local coreOffset = 0
-local function getCoreOffset() return coreOffset end
-local svgTemplate = [[<svg viewBox="0 0 32 32" style="width:100vw;height:100vh;border:solid 1vh black;">%s</svg>]]
+local svgTemplate = [[<svg viewBox="0 0 %d %d" style="width:100vw;height:100vh;">%s</svg>]]
 
 
 -------------------------
@@ -269,14 +272,14 @@ local function getElementSvg(plane,shape,position,size,isDamaged)
 	local x = 0
 	local y = 0
 	if plane == "top" then
-		x = position[1]
-		y = position[2]
-	elseif plane == "side" then
-		x = position[1]
-		y = position[3]
-	elseif plane == "front" then
 		x = position[2]
-		y = position[3]
+		y = position[1]
+	elseif plane == "side" then
+		x = position[2]
+		y = coreOffset*2 - position[3]
+	elseif plane == "front" then
+		x = position[1]
+		y = coreOffset*2 - position[3]
 	else
 		return ""
 	end
@@ -324,9 +327,11 @@ local function displaySketch()
 			end
 		end
 		
-		local svgTop = string.format(groupSvgTemplate,0,0,table.concat(svgHealthyElements.top)..table.concat(svgDamagedElements.top))
+		local svgTop = string.format(groupSvgTemplate,0,coreOffset*2,table.concat(svgHealthyElements.top)..table.concat(svgDamagedElements.top))
+		local svgSide = string.format(groupSvgTemplate,coreOffset*2,coreOffset*2,table.concat(svgHealthyElements.side)..table.concat(svgDamagedElements.side))
+		local svgFront = string.format(groupSvgTemplate,coreOffset*2,0,table.concat(svgHealthyElements.front)..table.concat(svgDamagedElements.front))
 		
-		local svg = string.format(svgTemplate,svgTop)
+		local svg = string.format(svgTemplate,coreOffset*4,coreOffset*4,svgTop..svgSide..svgFront)
 		
 		if sketchScreenId == 0 then
 			sketchScreenId = screens[damage_screen_number].addContent(0,0,svg)
@@ -523,8 +528,8 @@ function update()
 	displayFuelTanks()
 	
 	setDamagedElements()
-	displayDamagedElements()
 	displaySketch()
+	displayDamagedElements()
 	
 	if not pointTimerIsActive and activatePointTimer then
 		unit.setTimer("point", pointerUpdateTime)
