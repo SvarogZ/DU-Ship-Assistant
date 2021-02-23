@@ -123,9 +123,7 @@ local htmlStyle = [[<style>
 	}
 	
 	th, td {
-		border-color:]]..table_border_color..[[;
-		padding:0.5vw;
-		height:8vh;
+		border:thin solid ]]..table_border_color..[[;
 	}
 	
 	tbody {
@@ -187,17 +185,17 @@ local damageIndicatorActivatedText = "DAMAGE INDICATOR ACTIVATED"
 local noFuelTanksFoundText = "NO FUEL TANKS FOUND"
 local fuelTankIndicatorActivatedText ="FUEL TANK INDICATOR ACTIVATED"
 
-local damageTableTemplate = "<table class='small'><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%%</th></tr><tbody class='zebra'>%s</tbody></table></div>"
+local damageTableTemplate = "<table class='small'><tr><th style='width:5vw'>id</th><th style='width:10vw'>type</th><th style='width:15vw'>name</th><th style='width:5vw'>hp</th><th style='width:5vw'>max hp</th><th>%%</th></tr><tbody class='zebra'>%s</tbody></table></div>"
 local damageRowTemplate = "<tr><td class='cell'>%d</td><td class='cell'>%s</td><td class='cell'>%s</td><td class='cell'>%d</td><td class='cell'>%d</td><td class='cell'>%.1f</td></tr>"
 
 local fuelTanksTableTemplate = "<table><tr><th style='width:10vw'>code</th><th style='width:10vw'>id</th><th style='width:60vw'>name</th><th>%%</th></tr><tbody>%s</tbody></table>"
-local fuelTanksRowTemplate = "<tr><td class='cell' style='background-color:%s'></td><td class='cell'>%d</td><td class='cell'>%s</td><td class='cell'>%d</td></tr>"
+local fuelTanksRowTemplate = "<tr><td class='cell' style='background-color:%s;'></td><td class='cell'>%d</td><td class='cell'>%s</td><td class='cell'>%d</td></tr>"
 
 local systemScreenHtmlTemplate = [[<div style="position:absolute;top:10vh;right:5vw;height:5vh;width:90vw;color:%s;text-shadow:0.2vw 0.2vh 1vw %s;font-size:2vh;text-align:center;">%s</div>]]
 
 local circleSvgTemplate = [[<circle cx="%.2f" cy="%.2f" r="%.2f" stroke="%s" stroke-width="$.4d" fill="%s"/>]]
 local rectangleSvgTemplate = [[<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" stroke="%s" stroke-width="$.4f" fill="%s"/>]]
-local groupSvgTemplate = [[<g transform="translate(%d $d)">%s</g>]]
+local groupSvgTemplate = [[<g transform="translate(%d %d)">%s</g>]]
 local coreOffset = 0
 local svgTemplate = [[<svg viewBox="0 0 %d %d" style="width:100vw;height:100vh;">%s</svg>]]
 
@@ -259,7 +257,7 @@ local function setElementsList()
 				position = core.getElementPositionById(uid),
 				maxHitPoints = math.floor(core.getElementMaxHitPointsById(uid)) or 0,
 				shape = "circle",
-				size = 1
+				size = 0.2
 			}
 			elementsList[uid] = element
 		end
@@ -328,7 +326,7 @@ local function displaySketch()
 		local svgTop = string.format(groupSvgTemplate,0,coreOffset*2,table.concat(svgHealthyElements.top)..table.concat(svgDamagedElements.top))
 		local svgSide = string.format(groupSvgTemplate,coreOffset*2,coreOffset*2,table.concat(svgHealthyElements.side)..table.concat(svgDamagedElements.side))
 		local svgFront = string.format(groupSvgTemplate,coreOffset*2,0,table.concat(svgHealthyElements.front)..table.concat(svgDamagedElements.front))
-		
+
 		local svg = string.format(svgTemplate,coreOffset*4,coreOffset*4,svgTop..svgSide..svgFront)
 		
 		if sketchScreenId == 0 then
