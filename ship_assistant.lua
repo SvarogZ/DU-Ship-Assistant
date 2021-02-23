@@ -83,7 +83,7 @@ local tempDamagedIdToShow = {}
 local core = nil
 local uidList = {}
 local numberIdToCheck = 0
-local currentIdToCheck = 1
+local currentIdToCheckDamage = 1
 local screens = {}
 
 local elementsToScroll = {}
@@ -327,18 +327,23 @@ local function displaySketch()
 			front = {}
 		}
 		
-		for _, uid in ipairs(uidList) do
-			local color = element_sketch_color_healthy
-			local element = elementsList[uid]
-			
-			if damaged[uid] then
+		if #damaged > 0 then
+			for _, uid in ipairs(damaged) do
+				local element = elementsList[uid]
 				table.insert(svgDamagedElements.top,getElementSvg("top",element.shape,element.position,element.size,true))
 				table.insert(svgDamagedElements.side,getElementSvg("side",element.shape,element.position,element.size,true))
 				table.insert(svgDamagedElements.front,getElementSvg("front",element.shape,element.position,element.size,true))				
-			elseif show_healthy_elements then
-				table.insert(svgHealthyElements.top,getElementSvg("top",element.shape,element.position,element.size,false))
-				table.insert(svgHealthyElements.side,getElementSvg("side",element.shape,element.position,element.size,false))
-				table.insert(svgHealthyElements.front,getElementSvg("front",element.shape,element.position,element.size,false))				
+			end
+		end
+		
+		if show_healthy_elements then
+			for _, uid in ipairs(uidList) do
+				if not damaged[uid] then
+					local element = elementsList[uid]
+					table.insert(svgHealthyElements.top,getElementSvg("top",element.shape,element.position,element.size,false))
+					table.insert(svgHealthyElements.side,getElementSvg("side",element.shape,element.position,element.size,false))
+					table.insert(svgHealthyElements.front,getElementSvg("front",element.shape,element.position,element.size,false))				
+				end
 			end
 		end
 			
@@ -362,12 +367,12 @@ end
 
 local function setDamagedElements()
 	if core then
-		local maxId = currentIdToCheck + damaged_elements_to_check
+		local maxId = currentIdToCheckDamage + damaged_elements_to_check
 		if maxId > numberIdToCheck then
 			maxId = numberIdToCheck
 		end
 		
-		for i = currentIdToCheck, maxId , 1 do
+		for i = currentIdToCheckDamage, maxId , 1 do
 			local uid = uidList[i]
 			local maxHitPoints = elementsList[uid].maxHitPoints
 			local hitPoints = math.floor(core.getElementHitPointsById(uid)) or 0
@@ -383,13 +388,13 @@ local function setDamagedElements()
 			damagedIdToShow = tempDamagedIdToShow
 			tempDamaged = {}
 			tempDamagedIdToShow = {}
-			currentIdToCheck = 1
+			currentIdToCheckDamage = 1
 		elseif #damagedIdToShow < #tempDamagedIdToShow then
 			damaged = tempDamaged
 			damagedIdToShow = tempDamagedIdToShow
-			currentIdToCheck = maxId + 1
+			currentIdToCheckDamage = maxId + 1
 		else
-			currentIdToCheck = maxId + 1
+			currentIdToCheckDamage = maxId + 1
 		end
 	end
 end
