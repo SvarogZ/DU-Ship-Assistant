@@ -212,7 +212,7 @@ local fuelTanksRowTemplate = "<tr><td class='cell' style='background-color:%s;'>
 
 local systemScreenHtmlTemplate = [[<div style="position:absolute;top:10vh;right:5vw;height:5vh;width:90vw;color:%s;text-shadow:0.2vw 0.2vh 1vw %s;font-size:2vh;text-align:center;">%s</div>]]
 
-local circleSvgTemplate = [[<circle cx="%.2f" cy="%.2f" r="%.2f" stroke="%s" stroke-width="$.4f" fill="%s"/>]]
+local circleSvgTemplate = [[<circle cx="%.4f" cy="%.4f" r="%.4f" stroke="%s" stroke-width="$.4f" fill="%s"/>]]
 local rectangleSvgTemplate = [[<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" stroke="%s" stroke-width="$.4f" fill="%s"/>]]
 local groupSvgTemplate = [[<g transform="scale(%.2f) translate(%.2f %.2f)">%s</g>]]
 local coreOffset = 0
@@ -276,7 +276,7 @@ local function setElementsList()
 				position = core.getElementPositionById(uid),
 				maxHitPoints = math.floor(core.getElementMaxHitPointsById(uid)) or 0,
 				shape = "circle",
-				size = 0.2
+				size = 0.5
 			}
 			elementsList[uid] = element
 		end
@@ -328,7 +328,7 @@ local function displaySketch()
 		}
 		
 		if #damaged > 0 then
-			for _, uid in ipairs(damaged) do
+			for uid, _ in pairs(damaged) do
 				local element = elementsList[uid]
 				table.insert(svgDamagedElements.top,getElementSvg("top",element.shape,element.position,element.size,true))
 				table.insert(svgDamagedElements.side,getElementSvg("side",element.shape,element.position,element.size,true))
@@ -523,7 +523,7 @@ local function displayDamagedElements()
 			screens[damage_screen_number].setHTML(htmlStyle..htmlNoDamage..htmlIndicator)
 		else
 			local messageRows = {}
-			for _, uid in pairs(damagedIdToShow) do
+			for _, uid in ipairs(damagedIdToShow) do
 				local element = elementsList[uid]
 				local hitPoints = damaged[uid]
 				table.insert(messageRows, string.format(damageRowTemplate, uid, element.type, element.name,hitPoints,element.maxHitPoints,math.floor(1000*hitPoints/element.maxHitPoints)/10))
