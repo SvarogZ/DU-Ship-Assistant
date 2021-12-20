@@ -1,4 +1,4 @@
-local scriptVersion = "1.1"
+local scriptVersion = "1.2"
 -------------------------
 -- USER DEFINED DATA ----
 -------------------------
@@ -191,7 +191,7 @@ local function initiateSlots()
 			local elementClass = slot.getElementClass():lower()
 			if elementClass:find("coreunit") then
 				core = slot
-				local coreHP = core.getMaxHitPoints()
+				--[[local coreHP = core.getMaxHitPoints()
 				if coreHP > 10000 then
 					coreOffset = 128
 				elseif coreHP > 1000 then
@@ -200,7 +200,7 @@ local function initiateSlots()
 					coreOffset = 32
 				else
 					coreOffset = 16
-				end
+				end--]]
 				uidList = core.getElementIdList()
 				numberIdToCheck = #uidList
 			elseif elementClass == "screenunit" then
@@ -445,9 +445,9 @@ function pointElement()
 		end
 		
 		local position = core.getElementPositionById(elementsToScroll[activeElementId])
-		local x = position[1] - coreOffset
-		local y = position[2] - coreOffset
-		local z = position[3] - coreOffset
+		local x = position[1]
+		local y = position[2]
+		local z = position[3]
 		local arrowShift = pointerStep * (pointerSteps - pointCounter)
 		
 		if not arrowId then
