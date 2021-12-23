@@ -3,7 +3,7 @@ Dual Universe script to find damage and fuel tanks if the ship has landed/docked
 
 The script is designed to work with two screens.
 
-One screen shows fuel tanks, another current damage.
+One screen shows fuel tanks, another - current damage.
 
 The script is adapted for huge constructs and is able to check a limited number of damaged elements in one cycle.
 
