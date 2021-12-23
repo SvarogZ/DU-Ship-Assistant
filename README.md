@@ -18,8 +18,11 @@ The next elements should be connected:
 **How to use**
 
 Alt+1 - switch between fuel and damage information on the system screen.
+
 Alt+2 - scroll up fuel tanks or damaged elements to point them
+
 Alt+3 - scroll down fuel tanks or damaged elements to point them
+
 Alt+9 - exit
 
 **User-defined parameter**
