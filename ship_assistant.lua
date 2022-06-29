@@ -1,4 +1,4 @@
-local scriptVersion = "1.2"
+local scriptVersion = "1.1"
 -------------------------
 -- USER DEFINED DATA ----
 -------------------------
@@ -187,8 +187,8 @@ local systemScreenHtmlTemplate = [[<div style="position:absolute;top:10vh;right:
 -------------------------
 local function initiateSlots()
 	for _, slot in pairs(unit) do
-		if type(slot) == "table" and type(slot.export) == "table" and slot.getElementClass then
-			local elementClass = slot.getElementClass():lower()
+		if type(slot) == "table" and type(slot.export) == "table" and slot.getClass then
+			local elementClass = slot.getClass():lower()
 			if elementClass:find("coreunit") then
 				core = slot
 				--[[local coreHP = core.getMaxHitPoints()
@@ -207,20 +207,20 @@ local function initiateSlots()
 				table.insert(screens,slot)
 			elseif elementClass == "atmofuelcontainer" then
 				table.insert(tanks.atmo,slot)
-				table.insert(tanksIdToShow,slot.getId())
+				table.insert(tanksIdToShow,slot.getLocalId())
 			elseif elementClass == "spacefuelcontainer" then
 				table.insert(tanks.space,slot)
-				table.insert(tanksIdToShow,slot.getId())
+				table.insert(tanksIdToShow,slot.getLocalId())
 			elseif elementClass == "rocketfuelcontainer" then
 				table.insert(tanks.rocket,slot)
-				table.insert(tanksIdToShow,slot.getId())
+				table.insert(tanksIdToShow,slot.getLocalId())
 			end
 		end
 	end
 	
 	if #screens > 1 then
-		local screenId1 = screens[1].getId()
-		local screenId2 = screens[2].getId()
+		local screenId1 = screens[1].getLocalId()
+		local screenId2 = screens[2].getLocalId()
 		if screenId1 > screenId2 then
 			local temp = fuel_screen_number
 			fuel_screen_number = damage_screen_number
@@ -245,8 +245,8 @@ local function setDamagedElements()
 			if hitPoints < maxHitpoints then
 				local element = {}
 				element.uid = uid
-				element.type = core.getElementTypeById(uid) or "unknown"
-				element.name = core.getElementNameById(uid) or "unknown"
+				element.type = core.getElementDisplayNameById(uid) or "unknown"
+				element.name = core.getElementDisplayNameById(uid) or "unknown"
 				element.hitPoints = hitPoints
 				element.maxHitPoints = maxHitpoints
 				element.position = core.getElementPositionById(uid) or 0
@@ -310,8 +310,8 @@ local function messageToShow(elementId)
 		local _, textColor = getDefaultTextAndColor()	
 		local text = [[SELECTED: №]]
 			..uid..[[ | ]]
-			..core.getElementTypeById(uid)..[[ | ]]
-			..core.getElementNameById(uid)
+			..core.getElementDisplayNameById(uid)..[[ | ]]
+			..core.getElementDisplayNameById(uid)
 		setScreenTextHtml(text,textColor)
 	else
 		local text, textColor = getDefaultTextAndColor()
@@ -379,9 +379,9 @@ local function displayFuelTanks()
 		local messageRows = {}
 		for tankType, subTanks in pairs(tanks) do
 			for key, tank in ipairs(subTanks) do
-				 local data = json.decode(tank.getData()) 
-				 --table.insert(messageRows,string.format(fuelTanksRowTemplate,tankColors[tankType],tank.getId(),data.name,data.percentage))
-				 table.insert(messageRows,"<tr><td class='cell' style='background-color:"..tankColors[tankType].."'></td><td class='cell'>"..tank.getId().."</td><td class='cell'>"..data.name.."</td><td class='cell'>"..data.percentage.."%</td></tr>")
+				 local data = json.decode(tank.getWidgetData()) 
+				 --table.insert(messageRows,string.format(fuelTanksRowTemplate,tankColors[tankType],tank.getLocalId(),data.name,data.percentage))
+				 table.insert(messageRows,"<tr><td class='cell' style='background-color:"..tankColors[tankType].."'></td><td class='cell'>"..tank.getLocalId().."</td><td class='cell'>"..data.name.."</td><td class='cell'>"..data.percentage.."%</td></tr>")
 			end
 		end
 		local html = string.format(fuelTanksTableTemplate,table.concat(messageRows))
@@ -507,40 +507,3 @@ system.showScreen(1)
 -- UPDATE REFRESH TIMER ------
 ------------------------------
 unit.setTimer("update", update_time)
-
-
-
--------------------------
--- FILTER UPDATE --------
--------------------------
-update()
-
--------------------------
--- FILTER POINT ---------
--------------------------
-pointElement()
-
--------------------------
--- STOP -----------------
--------------------------
-stop()
-
--------------------------
--- Alt+1 ----------------
--------------------------
-changeElementsToScroll()
-
--------------------------
--- Alt+2 ----------------
--------------------------
-activeElementIdUp()
-
--------------------------
--- Alt+3 ----------------
--------------------------
-activeElementIdDown()
-
--------------------------
--- Alt+9 ----------------
--------------------------
-unit.exit()
