@@ -18,6 +18,8 @@ local pointerUpdateTime = 1 / pointer_fps
 local pointerStep = pointer_speed / pointer_fps
 local pointerSteps = math.floor(pointer_max_distance / pointerStep)
 local stringMax = 1024 --export: max string size to transmit
+local startPattern = "[s]"
+local stopPattern = "[e]"
 
 -------------------------
 -- VARIABLES ------------
@@ -79,7 +81,6 @@ local function initiateSlots()
 				elseif slot.getScriptOutput() == "fuel" then
 					table.insert(fuelScreens,slot)
 				end
-				table.insert(screens,slot)
 			elseif elementClass == "atmofuelcontainer" then
 				table.insert(tanks.atmo,slot)
 				table.insert(tanksIdToShow,slot.getLocalId())
@@ -274,7 +275,6 @@ local function getDamagedElementsString()
 	if #damageScreens > 0 then
 		local dataStringRows = {}
 		for _, element in ipairs(damaged) do
-			local data = json.decode(tank.getWidgetData())
 			local objectToRecord = {}
 			objectToRecord[1] = element.uid
 			objectToRecord[2] = element.type
@@ -292,6 +292,52 @@ end
 -------------------------
 -- UPDATE FUNCTION ------
 -------------------------
+function fuelTransmission(dataString)
+	if not isTransmissionFuelInProgress then
+		if dataString and dataString ~= "" then
+			stringFuelToTransmit = startPattern .. dataString .. stopPattern
+			--system.print("stringFuelToTransmit = "..stringFuelToTransmit)
+			isTransmissionFuelInProgress = true
+			unit.setTimer("transmit_fuel", 0.05)
+		end
+		return
+	end
+	
+	if #stringFuelToTransmit > stringMax then
+		local stringPart = string.sub(stringFuelToTransmit,1,stringMax)
+		sendToScreens(fuelScreens,stringPart)
+		stringFuelToTransmit = string.sub(stringFuelToTransmit,stringMax+1)
+	else
+		sendToScreens(fuelScreens,stringFuelToTransmit)
+		isTransmissionFuelInProgress = false
+		unit.stopTimer("transmit_fuel")
+		--system.print("fuel transmission complete")
+	end
+end
+
+function damageTransmission(dataString)
+	if not isTransmissionDamageInProgress then
+		if dataString and dataString ~= "" then
+			stringDamageToTransmit = startPattern .. dataString .. stopPattern
+			--system.print("stringDamageToTransmit = "..stringDamageToTransmit)
+			isTransmissionDamageInProgress = true
+			unit.setTimer("transmit_damage", 0.05)
+		end
+		return
+	end
+	
+	if #stringDamageToTransmit > stringMax then
+		local stringPart = string.sub(stringDamageToTransmit,1,stringMax)
+		sendToScreens(damageScreens,stringPart)
+		stringDamageToTransmit = string.sub(stringDamageToTransmit,stringMax+1)
+	else
+		sendToScreens(damageScreens,stringDamageToTransmit)
+		isTransmissionDamageInProgress = false
+		unit.stopTimer("transmit_damage")
+		--system.print("damage transmission complete")
+	end
+end
+
 function update()
 	-- pointing the element
 	if not pointTimerIsActive and activatePointTimer then
@@ -313,52 +359,6 @@ function update()
 			-- start transmission
 			damageTransmission(getDamagedElementsString())
 		end
-	end
-end
-
-function fuelTransmission(dataString)
-	if not isTransmissionFuelInProgress then
-		if dataString and dataString ~= "" then
-			stringFuelToTransmit = startPattern .. dataString .. stopPattern
-			--system.print("stringFuelToTransmit = "..stringFuelToTransmit)
-			isTransmissionFuelInProgress = true
-			unit.setTimer("transmit_fuel", 0.05)
-			return
-		end
-	end
-	
-	if #stringFuelToTransmit > stringMax then
-		local stringPart = string.sub(stringFuelToTransmit,1,stringMax)
-		sendToScreens(fuelScreens,stringPart)
-		stringFuelToTransmit = string.sub(stringFuelToTransmit,stringMax+1)
-	else
-		sendToScreens(fuelScreens,stringFuelToTransmit)
-		isTransmissionFuelInProgress = false
-		unit.stopTimer("transmit_fuel")
-		--system.print("fuel transmission complete")
-	end
-end
-
-function damageTransmission(dataString)
-	if not isTransmissionDamageInProgress then
-		if dataString and dataString ~= "" then
-			stringDamageToTransmit = startPattern .. dataString .. stopPattern
-			--system.print("stringDamageToTransmit = "..stringDamageToTransmit)
-			isTransmissionDamageInProgress = true
-			unit.setTimer("transmit_fuel", 0.05)
-			return
-		end
-	end
-	
-	if #stringDamageToTransmit > stringMax then
-		local stringPart = string.sub(stringDamageToTransmit,1,stringMax)
-		sendToScreens(damageScreens,stringPart)
-		stringDamageToTransmit = string.sub(stringDamageToTransmit,stringMax+1)
-	else
-		sendToScreens(damageScreens,stringDamageToTransmit)
-		isTransmissionDamageInProgress = false
-		unit.stopTimer("transmit_fuel")
-		--system.print("fuel transmission complete")
 	end
 end
 
