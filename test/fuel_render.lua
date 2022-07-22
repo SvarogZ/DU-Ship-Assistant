@@ -2,7 +2,7 @@ setOutput("fuel")
 local screenWidth, screenHeight = getResolution()
 
 local col_number = 5
-local row_number = 11
+local row_number = 6
 local header = {"#","Id","Type","Name","%"}
 local tableColumnWidthPattern = {5,12,30,40,13}
 local tableRowHeightPattern = {}
@@ -30,7 +30,7 @@ local navigationButtonWidth = screenWidth / 2.2
 local navigationButtonHeight = screenHeight / 25
 local navigationBorderRadius = screenHeight / 50
 local sortMarkSize = screenHeight/100
-local defaultSelector = 3
+local defaultSelector = 2
 
 local tableLayer = createLayer()
 local controlLayer = createLayer()
@@ -426,10 +426,8 @@ local function getProcessedData(data,rowsToShow,page,header)
 		local minute = math.floor(t/60)
 		t = t%60
 		local second = math.floor(t)
-
 		if day > 0 then text = day.."d:" end
 		if day > 0 or hour > 0 then text = text..hour.."h:" end
-
 		return text..minute.."m"
 	end]]
 	
