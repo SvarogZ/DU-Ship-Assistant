@@ -116,7 +116,7 @@ local function setDamagedElements()
 			if hitPoints < maxHitpoints then
 				local element = {}
 				element.uid = uid
-				element.type = core.getElementDisplayNameById(uid) or "unknown"
+				element.class = core.getElementClassById(uid) or "unknown"
 				element.name = core.getElementDisplayNameById(uid) or "unknown"
 				element.hitPoints = hitPoints
 				element.maxHitPoints = maxHitpoints
@@ -182,7 +182,7 @@ local function messageToShow(elementId)
 		local _, textColor = getDefaultTextAndColor()	
 		local text = [[SELECTED: №]]
 			..uid..[[ | ]]
-			..core.getElementDisplayNameById(uid)..[[ | ]]
+			..core.getElementClassById(uid)..[[ | ]]
 			..core.getElementDisplayNameById(uid)
 		setScreenTextHtml(text,textColor)
 	else
@@ -277,7 +277,7 @@ local function getDamagedElementsString()
 		for _, element in ipairs(damaged) do
 			local objectToRecord = {}
 			objectToRecord[1] = element.uid
-			objectToRecord[2] = element.type
+			objectToRecord[2] = element.class
 			objectToRecord[3] = element.name
 			objectToRecord[4] = element.hitPoints
 			objectToRecord[5] = element.maxHitPoints
