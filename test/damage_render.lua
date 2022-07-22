@@ -33,6 +33,17 @@ local sortMarkSize = screenHeight/100
 local defaultSelector = 2
 
 local tableLayer = createLayer()
+
+local stringForm = getInput()
+if stringForm == "processing" then
+	
+	return
+end
+if stringForm == "stopped" then
+	
+	return
+end
+
 local controlLayer = createLayer()
 
 local navigationButtonFont = loadFont (navigationButtonFontName, navigationButtonFontSize)
@@ -386,7 +397,6 @@ if not dataFromPB then
 	dataFromPB = DataClass:new("[s]","[e]")
 end
 
-local stringForm = getInput()
 dataFromPB:update(stringForm)
 local data = dataFromPB:getData()
 pageLimit = math.floor((#data - 1) / (row_number - 1)) + 1
