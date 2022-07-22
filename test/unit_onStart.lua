@@ -3,14 +3,6 @@ local scriptVersion = "2.0"
 -- USER DEFINED DATA ----
 -------------------------
 local damaged_elements_to_check = 100 --export: The number of elements checked in one cycle
-local atmo_color = "blue" --export: color for atmo tanks
-local space_color = "yellow" --export: color for space tanks
-local rocket_color = "pink" --export: color for rocket tanks
-local tankColors = {
-	atmo = atmo_color,
-	space = space_color,
-	rocket = rocket_color
-}
 
 local damage_text_color = "#FFC2C2" --export: damage text color for the system screen
 local fuel_tank_text_color = "#C2F7FF" --export: fuel tank text color for the system screen
@@ -25,6 +17,7 @@ if pointer_fps > 30 then pointer_fps = 30 end
 local pointerUpdateTime = 1 / pointer_fps
 local pointerStep = pointer_speed / pointer_fps
 local pointerSteps = math.floor(pointer_max_distance / pointerStep)
+local stringMax = 1024 --export: max string size to transmit
 
 -------------------------
 -- VARIABLES ------------
@@ -45,7 +38,8 @@ local core = nil
 local uidList = {}
 local numberIdToCheck = 0
 local currentIdToCheck = 0
-local screens = {}
+local damageScreens = {}
+local fuelScreens = {}
 
 local elementsToScroll = {}
 local activeScrollList = 0
@@ -54,6 +48,9 @@ local activeElementId = 0
 local pointCounter = 0
 local pointTimerIsActive = false
 local activatePointTimer = false
+local isDamageListComplete = false
+local isTransmissionFuelInProgress = false
+local isTransmissionDamageInProgress = false
 
 local noDamageFoundText = "NO DAMAGE FOUND"
 local damageIndicatorActivatedText = "DAMAGE INDICATOR ACTIVATED"
@@ -77,6 +74,11 @@ local function initiateSlots()
 				uidList = core.getElementIdList()
 				numberIdToCheck = #uidList
 			elseif elementClass == "screenunit" then
+				if slot.getScriptOutput() == "damage" then
+					table.insert(damageScreens,slot)
+				elseif slot.getScriptOutput() == "fuel" then
+					table.insert(fuelScreens,slot)
+				end
 				table.insert(screens,slot)
 			elseif elementClass == "atmofuelcontainer" then
 				table.insert(tanks.atmo,slot)
@@ -129,10 +131,11 @@ local function setDamagedElements()
 			tempDamaged = {}
 			tempDamagedIdToShow = {}
 			currentIdToCheck = 0
-		elseif #damaged < #tempDamaged then
-			damaged = tempDamaged
-			damagedIdToShow = tempDamagedIdToShow
-			currentIdToCheck = maxId + 1
+			isDamageListComplete = true
+		--elseif #damaged < #tempDamaged then
+			--damaged = tempDamaged
+			--damagedIdToShow = tempDamagedIdToShow
+			--currentIdToCheck = maxId + 1
 		else
 			currentIdToCheck = maxId + 1
 		end
@@ -187,10 +190,16 @@ local function messageToShow(elementId)
 	end
 end
 
-local function setProcessing()
+local function sendToScreens(screens,stringData)
 	for _, screen in ipairs(screens) do
-		--screen.setHTML(htmlStyle..htmlProcessing)
+		screen.setScriptInput(stringData)
 	end
+end
+
+local function setProcessing()
+	local stringToSend = "processing"
+	sendToScreens(damageScreens,stringToSend)
+	sendToScreens(fuelScreens,stringToSend)
 end
 
 function changeElementsToScroll()
@@ -242,60 +251,114 @@ function activeElementIdDown()
 	end
 end
 
-local function displayFuelTanks()
-	--[[if screens[fuel_screen_number] then
-		local messageRows = {}
+local function getFuelTanksString()
+	if #fuelScreens > 0 then
+		local dataStringRows = {}
 		for tankType, subTanks in pairs(tanks) do
 			for key, tank in ipairs(subTanks) do
-				 local data = json.decode(tank.getWidgetData()) 
-				 --table.insert(messageRows,string.format(fuelTanksRowTemplate,tankColors[tankType],tank.getLocalId(),data.name,data.percentage))
-				 table.insert(messageRows,"<tr><td class='cell' style='background-color:"..tankColors[tankType].."'></td><td class='cell'>"..tank.getLocalId().."</td><td class='cell'>"..data.name.."</td><td class='cell'>"..data.percentage.."%</td></tr>")
+				local data = json.decode(tank.getWidgetData())
+				local objectToRecord = {}
+				objectToRecord[1] = tank.getLocalId()
+				objectToRecord[2] = tankType
+				objectToRecord[3] = data.name
+				objectToRecord[4] = data.percentage
+				table.insert(dataStringRows,table.concat(objectToRecord,","))
 			end
 		end
-		local html = string.format(fuelTanksTableTemplate,table.concat(messageRows))
-		--local html = "<table><tr><th style='width:10vw'>code</th><th style='width:10vw'>id</th><th style='width:60vw'>name</th><th>%</th></tr><tbody>"
-		--	..table.concat(messageRows)
-		--	.. "</tbody></table>"
-		screens[fuel_screen_number].setHTML(htmlStyle..html..htmlIndicator)
-	end]]
+		
+		return table.concat(dataStringRows,";")
+	end
 end
 
-local function displayDamagedElements()
-	--[[if screens[damage_screen_number] then
-		if #damaged < 1 then
-			screens[damage_screen_number].setHTML(htmlStyle..htmlNoDamage..htmlIndicator)
-		else
-			local messageRows = {}
-			for _, element in ipairs(damaged) do
-				table.insert(messageRows, string.format(damageRowTemplate, element.uid, element.type, element.name,element.hitPoints,element.maxHitPoints,math.floor(1000*element.hitPoints/element.maxHitPoints)/10))
-			end
-			
-			local rows = 10
-			if rows > #damaged then rows = #damaged end
-			local html = string.format(damageTableTemplate,table.concat(messageRows,"",1,rows))
-			--local html = "<table><tr><th style='width:10vw'>id</th><th style='width:20vw'>type</th><th style='width:30vw'>name</th><th style='width:10vw'>hp</th><th style='width:10vw'>max hp</th><th>%</th></tr><tbody class='zebra'>"
-			--	..table.concat(messageRows,"",1,rows)
-			--	.. "</tbody></table>"
-			screens[damage_screen_number].setHTML(htmlStyle..html..htmlIndicator)
+local function getDamagedElementsString()
+	if #damageScreens > 0 then
+		local dataStringRows = {}
+		for _, element in ipairs(damaged) do
+			local data = json.decode(tank.getWidgetData())
+			local objectToRecord = {}
+			objectToRecord[1] = element.uid
+			objectToRecord[2] = element.type
+			objectToRecord[3] = element.name
+			objectToRecord[4] = element.hitPoints
+			objectToRecord[5] = element.maxHitPoints
+			table.insert(dataStringRows,table.concat(objectToRecord,","))
 		end
-	end]]
+		
+		return table.concat(dataStringRows,";")
+	end
 end
+
 
 -------------------------
 -- UPDATE FUNCTION ------
 -------------------------
 function update()
-	--if indicatorColorCurrent == indicator_color then indicatorColorCurrent = screen_color else indicatorColorCurrent = indicator_color end
-
-	
-	displayFuelTanks()
-	
-	setDamagedElements()
-	displayDamagedElements()
-	
+	-- pointing the element
 	if not pointTimerIsActive and activatePointTimer then
 		unit.setTimer("point", pointerUpdateTime)
 		pointTimerIsActive = true
+	end
+	
+	-- fuel tanks section
+	if not isTransmissionFuelInProgress then
+		-- start transmission
+		fuelTransmission(getFuelTanksString())
+	end
+	
+	-- damage elements section	
+	if not isTransmissionDamageInProgress then
+		if not isDamageListComplete then
+			setDamagedElements()
+		else
+			-- start transmission
+			damageTransmission(getDamagedElementsString())
+		end
+	end
+end
+
+function fuelTransmission(dataString)
+	if not isTransmissionFuelInProgress then
+		if dataString and dataString ~= "" then
+			stringFuelToTransmit = startPattern .. dataString .. stopPattern
+			--system.print("stringFuelToTransmit = "..stringFuelToTransmit)
+			isTransmissionFuelInProgress = true
+			unit.setTimer("transmit_fuel", 0.05)
+			return
+		end
+	end
+	
+	if #stringFuelToTransmit > stringMax then
+		local stringPart = string.sub(stringFuelToTransmit,1,stringMax)
+		sendToScreens(fuelScreens,stringPart)
+		stringFuelToTransmit = string.sub(stringFuelToTransmit,stringMax+1)
+	else
+		sendToScreens(fuelScreens,stringFuelToTransmit)
+		isTransmissionFuelInProgress = false
+		unit.stopTimer("transmit_fuel")
+		--system.print("fuel transmission complete")
+	end
+end
+
+function damageTransmission(dataString)
+	if not isTransmissionDamageInProgress then
+		if dataString and dataString ~= "" then
+			stringDamageToTransmit = startPattern .. dataString .. stopPattern
+			--system.print("stringDamageToTransmit = "..stringDamageToTransmit)
+			isTransmissionDamageInProgress = true
+			unit.setTimer("transmit_fuel", 0.05)
+			return
+		end
+	end
+	
+	if #stringDamageToTransmit > stringMax then
+		local stringPart = string.sub(stringDamageToTransmit,1,stringMax)
+		sendToScreens(damageScreens,stringPart)
+		stringDamageToTransmit = string.sub(stringDamageToTransmit,stringMax+1)
+	else
+		sendToScreens(damageScreens,stringDamageToTransmit)
+		isTransmissionDamageInProgress = false
+		unit.stopTimer("transmit_fuel")
+		--system.print("fuel transmission complete")
 	end
 end
 
@@ -357,9 +420,10 @@ end
 -- STOP FUNCTION -------------
 ------------------------------
 function stop()
-	for _, screen in ipairs(screens) do
-		--screen.setHTML(htmlStyle..helpInfo)
-	end
+	local stringToSend = "stopped"
+	sendToScreens(damageScreens,stringToSend)
+	sendToScreens(fuelScreens,stringToSend)
+	
 	system.setScreen("")
 	system.showScreen(0)
 end
