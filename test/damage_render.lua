@@ -4,7 +4,7 @@ local screenWidth, screenHeight = getResolution()
 local col_number = 7
 local row_number = 11
 local header = {"#","Id","Type","Name","HP", "max HP","%"}
-local tableColumnWidthPattern = {5,12,15,20,20,20,13}
+local tableColumnWidthPattern = {5,12,25,25,10,13,10}
 local tableRowHeightPattern = {}
 local textAlignColumnPattern = {1}
 local table_font_name = "FiraMono"
@@ -30,7 +30,7 @@ local navigationButtonWidth = screenWidth / 2.2
 local navigationButtonHeight = screenHeight / 25
 local navigationBorderRadius = screenHeight / 50
 local sortMarkSize = screenHeight/100
-local defaultSelector = 3
+local defaultSelector = 2
 
 local tableLayer = createLayer()
 local controlLayer = createLayer()
@@ -245,10 +245,10 @@ if not control then
 	
 	local locations = {
 		{screenWidth*0.16, screenHeight*0.07},
-		{screenWidth*0.35, screenHeight*0.07},
-		{screenWidth*0.45, screenHeight*0.07},
+		{screenWidth*0.40, screenHeight*0.07},
 		{screenWidth*0.65, screenHeight*0.07},
-		{screenWidth*0.85, screenHeight*0.07},
+		{screenWidth*0.75, screenHeight*0.07},
+		{screenWidth*0.88, screenHeight*0.07},
 		{screenWidth*0.975, screenHeight*0.07}
 	}
 	control.selectorSort = SelectorClass:new(controlLayer,locations,checkAreaSortSelector,drawSortOn,drawSortOff)
@@ -428,10 +428,8 @@ local function getProcessedData(data,rowsToShow,page,header)
 		local minute = math.floor(t/60)
 		t = t%60
 		local second = math.floor(t)
-
 		if day > 0 then text = day.."d:" end
 		if day > 0 or hour > 0 then text = text..hour.."h:" end
-
 		return text..minute.."m"
 	end]]
 	
@@ -443,9 +441,10 @@ local function getProcessedData(data,rowsToShow,page,header)
 			--[[if n == 3 or n == 4 then
 				item = dateFormat(item)
 			end]]
-			item[#item+1] = math.floor(1000*item[4]/item[5])/10
 			table.insert(row,item)
 		end
+		local persent = math.floor(1000*dataRow[4]/dataRow[5])/10
+		table.insert(row,persent)
 		table.insert(processedData,row)
 		k = k + 1
 	end
